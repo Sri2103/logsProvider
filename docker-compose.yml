@@ -1,0 +1,100 @@
+services:
+  primary-service:
+    build:
+      context: ./primary-service
+      dockerfile: Dockerfile
+    container_name: primary-service
+    ports:
+      - "3000:3000" # Exposes the web service and metrics
+    volumes:
+      - shared-logs:/usr/src/app/logs # Shared volume for logs
+    networks:
+      - logging
+    environment:
+      - NODE_ENV=production
+
+  sidecar-container:
+    build:
+      context: ./sidecar-container
+      dockerfile: Dockerfile
+    container_name: sidecar-container
+    volumes:
+      - shared-logs:/app/logs # Shared volume to read/write logs
+      - ./sidecar-container/sidecar-config:/app/config # Configuration for log filtering
+    networks:
+      - logging
+    depends_on:
+      - primary-service
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.0
+    container_name: logstash
+    ports:
+      - "5044:5044" # Beats input for logs
+      - "9600:9600" # Logstash monitoring API
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      # collect logs from sidecar-container from shared volume
+      - shared-logs:/app/logs
+
+
+    depends_on:
+      - sidecar-container
+    networks:
+      - logging
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    container_name: elasticsearch
+    ports:
+      - "9200:9200" # Elasticsearch HTTP API
+      - "9300:9300" # Transport protocol
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    networks:
+      - logging
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.0
+    container_name: kibana
+    ports:
+      - "5601:5601" # Kibana UI
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - logging
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - logging
+    depends_on:
+      - primary-service
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000" # Grafana UI
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - logging
+
+networks:
+  logging:
+    driver: bridge
+
+volumes:
+  shared-logs:
+  grafana-data:

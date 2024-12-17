@@ -1,0 +1,14 @@
+{
+  "name": "sidecar",
+  "version": "1.0.0",
+  "main": "sidecar.js",
+  "scripts": {
+    "start": "node sidecar.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "sidecar": "file:"
+  }
+}
