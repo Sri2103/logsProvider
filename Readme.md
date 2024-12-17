@@ -15,7 +15,7 @@ This project demonstrates how to run an application with centralized logging and
 6. Grafana to visualize Prometheus metrics.
 
 <!-- embed an image from file for the architecture -->
-![architecture](./system.png)
+![architecture](./assets/Screenshot_17-12-2024_145922_localhost.jpeg)
 
 ## Table of Contents
 
@@ -247,6 +247,7 @@ volumes:
     driver: local
 
 ```
+
 
 ### Conclusion
 
